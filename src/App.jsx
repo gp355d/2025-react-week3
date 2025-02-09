@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 const API_PATH = import.meta.env.VITE_API_PATH;
-
+//設定預設初始資料狀狀態
 const defaultModalState = {
   imageUrl: "",
   title: "",
@@ -20,15 +20,13 @@ const defaultModalState = {
 };
 
 function App() {
-  const [isAuth, setIsAuth] = useState(false);
-
-  const [products, setProducts] = useState([]);
-
-  const [account, setAccount] = useState({
+  const [isAuth, setIsAuth] = useState(false);//設定驗證初始狀態
+  const [products, setProducts] = useState([]);//設定陣列初始狀態
+  const [account, setAccount] = useState({//設定預設input會顯示的狀態
     username: "example@test.com",
     password: "example"
   });
-  const [modalType, setModalType] = useState("");
+  const [modalType, setModalType] = useState("");//設定執行動作的狀態
 //取得後台產品資料
   const getProducts = async () => {
     try {
@@ -40,7 +38,7 @@ function App() {
       console.error(err);
     }
   };
-
+//修改input欄位的數值變更
   const handleInputChange = (e) => {
     const { value, name } = e.target;
 
@@ -56,9 +54,9 @@ function App() {
     axios.post(`${BASE_URL}/v2/admin/signin`, account)
       .then((res) => {
         const {token, expired } = res.data;
-
+        //將Token存到Cookie，並設定過期時間
         document.cookie = `hexToken=${token}; expires=${new Date(expired)}`;
-
+        //所有axios的header加入token(這樣可以不用每個都輸入)
         axios.defaults.headers.common['Authorization'] = token;
 
         getProducts();
@@ -72,14 +70,15 @@ function App() {
     try {
       await axios.post(`${BASE_URL}/v2/api/user/check`);
       getProducts();
-      setIsAuth(true);
+      setIsAuth(true);//轉換狀態已登入
     } catch (error) {
       setIsAuth(false);
       console.error(error);
     }
   }
-
+//初始執行checkUserLogin函式一次
   useEffect(() => {
+    //從cookie取得token變數
     const token = document.cookie.replace(
       /(?:(?:^|.*;\s*)hexToken\s*=\s*([^;]*).*$)|^.*$/,
       "$1",
@@ -89,10 +88,10 @@ function App() {
     checkUserLogin();
   }, []);
 
-  const productModalRef = useRef(null);
-  const delProductModalRef = useRef(null);
-  const [modalMode, setModalMode] = useState(null);
-
+  const productModalRef = useRef(null);//設定產品modal的初始值狀態
+  const delProductModalRef = useRef(null);//設定刪除產品modal的初始值狀態
+  const [modalMode, setModalMode] = useState(null);//設定預設執行的初始值狀態
+//設定modal不能被點擊空白處關閉
   useEffect(() => {
     new Modal(productModalRef.current, {
       backdrop: false
@@ -111,14 +110,16 @@ function App() {
     } else {
       setTempProduct(defaultModalState);
     }
-
+    //初始化modal
     const modalInstance = Modal.getInstance(productModalRef.current);
+    //開啟產品modal
     modalInstance.show();
     setModalType(mode);
   }
 
   const handleCloseProductModal = () => {
     const modalInstance = Modal.getInstance(productModalRef.current);
+    //關閉產品modal
     modalInstance.hide();
   }
 
@@ -126,8 +127,9 @@ function App() {
 
   const handleOpenDelProductModal = (product) => {
     setTempProduct(product);
-
+    //初始化modal
     const modalInstance = Modal.getInstance(delProductModalRef.current);
+    //開啟刪除產品modal
     modalInstance.show();
   }
 
@@ -136,8 +138,8 @@ function App() {
     modalInstance.hide();
   }
 
-  const [tempProduct, setTempProduct] = useState(defaultModalState);
-
+  const [tempProduct, setTempProduct] = useState(defaultModalState);//將初始預設資料狀態賦予到tempProduct的狀態
+  //Modal表單內部input值的變更
   const handleModalInputChange = (e) => {
     const { value, name, checked, type } = e.target;
 
@@ -146,9 +148,9 @@ function App() {
       [name]: type === "checkbox" ? checked : value
     });
   };
-
+  //副圖網址的input欄位，輸入網址可替換圖片
   const handleImageChange = (e, index) => {
-    const { value, name } = e.target;
+    const { value } = e.target;
 
     const newImages = [...tempProduct.imagesUrl];
     newImages[index] = value;
@@ -158,7 +160,7 @@ function App() {
       imagesUrl: newImages
     });
   };
-
+  //新增附圖
   const handleAddImage = () => {
     const newImages = [...tempProduct.imagesUrl, ''];
 
@@ -167,7 +169,7 @@ function App() {
       imagesUrl: newImages,
     });
   };
-
+  //移除附圖
   const handleRemoveImage = () => {
     const newImages = [...tempProduct.imagesUrl];
 
@@ -178,7 +180,7 @@ function App() {
       imagesUrl: newImages,
     });
   };
-
+  //判斷執行行為的為新增或更新的API
   const updateProduct = async (id) => {
     let product;
     if (modalType === "edit") {
