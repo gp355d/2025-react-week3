@@ -28,11 +28,12 @@ function App() {
     username: "example@test.com",
     password: "example"
   });
+  const [modalType, setModalType] = useState("");
 //取得後台產品資料
   const getProducts = async () => {
     try {
       const response = await axios.get(
-        `${BASE_URL}/api/${API_PATH}/admin/products`
+        `${BASE_URL}/v2/api/${API_PATH}/admin/products`
       );
       setProducts(response.data.products);
     } catch (err) {
@@ -80,7 +81,7 @@ function App() {
 
   useEffect(() => {
     const token = document.cookie.replace(
-      /(?:(?:^|.*;\s*)hexToken\s*\=\s*([^;]*).*$)|^.*$/,
+      /(?:(?:^|.*;\s*)hexToken\s*=\s*([^;]*).*$)|^.*$/,
       "$1",
     );
     axios.defaults.headers.common['Authorization'] = token;
@@ -112,8 +113,8 @@ function App() {
     }
 
     const modalInstance = Modal.getInstance(productModalRef.current);
-
     modalInstance.show();
+    setModalType(mode);
   }
 
   const handleCloseProductModal = () => {
@@ -178,66 +179,56 @@ function App() {
     });
   };
 
-  const createProduct = async () => {
-    try {
-      await axios.post(`${BASE_URL}/api/${API_PATH}/admin/product`, {
-        data: {
-          ...tempProduct,
-          origin_price: Number(tempProduct.origin_price),
-          price: Number(tempProduct.price),
-          is_enabled: tempProduct.is_enabled ? 1 : 0
-        }
-      });
-    } catch (error) {
-      alert('新增產品失敗');
+  const updateProduct = async (id) => {
+    let product;
+    if (modalType === "edit") {
+      product = `product/${id}`;
+    } else {
+      product = `product`;
     }
-  }
-
-  const updateProduct = async () => {
-    try {
-      await axios.put(`${BASE_URL}/api/${API_PATH}/admin/product/${tempProduct.id}`, {
-        data: {
-          ...tempProduct,
-          origin_price: Number(tempProduct.origin_price),
-          price: Number(tempProduct.price),
-          is_enabled: tempProduct.is_enabled ? 1 : 0
-        }
-      });
-    } catch (error) {
-      alert('新增產品失敗');
+    const url = `${BASE_URL}/v2/api/${API_PATH}/admin/${product}`;
+    const productData = {
+      data: {
+        ...tempProduct,
+        origin_price: Number(tempProduct.origin_price),
+        price: Number(tempProduct.price),
+        is_enabled: tempProduct.is_enabled ? 1 : 0
+      }
     }
-  }
-
-  const deleteProduct = async () => {
     try {
-      await axios.delete(`${BASE_URL}/api/${API_PATH}/admin/product/${tempProduct.id}`);
-    } catch (error) {
-      alert('刪除產品失敗');
-    }
-  }
-
-  const handleUpdateProduct = async() => {
-    const apiCall = modalMode === 'add' ? createProduct : updateProduct;
-
-    try {
-      await apiCall();
-
-      getProducts();
+      let res;
+      if(modalType === 'edit'){
+        res = await axios.put(url,productData);
+        alert(res.data.message);
+      }
+      else{
+        res = await axios.post(url, productData);
+        alert(res.data.message);
+      };
       handleCloseProductModal();
+      getProducts()
     } catch (error) {
-      alert('更新產品失敗');
+      alert(error.response.data.message);
     }
   }
 
-  const handleDeleteProduct = async () => {
+  const deleteProduct = async (id) => {
     try {
-      await deleteProduct();
-
-      getProducts();
+      let res = await axios.delete(`${BASE_URL}/v2/api/${API_PATH}/admin/product/${id}`);
       handleCloseDelProductModal();
+      getProducts();
+      alert(res.data.message);
     } catch (error) {
-      alert('刪除產品失敗');
+      alert("刪除失敗", error.response.data.message);;
     }
+  }
+
+  const handleUpdateProduct = async(id) => {
+   updateProduct(id);
+  }
+
+  const handleDeleteProduct = async (id) => {
+    deleteProduct(id);
   }
 
   return (
@@ -320,7 +311,7 @@ function App() {
                         value={tempProduct.imageUrl}
                         onChange={handleModalInputChange}
                         name="imageUrl"
-                        type="text"
+                        type="url"
                         id="primary-image"
                         className="form-control"
                         placeholder="請輸入圖片連結"
@@ -347,7 +338,7 @@ function App() {
                           value={image}
                           onChange={(e) => handleImageChange(e, index)}
                           id={`imagesUrl-${index + 1}`}
-                          type="text"
+                          type="url"
                           placeholder={`圖片網址 ${index + 1}`}
                           className="form-control mb-2"
                         />
@@ -362,7 +353,6 @@ function App() {
                     ))}
 
                     <div className="btn-group w-100">
-
                       {tempProduct.imagesUrl.length < 5 && tempProduct.imagesUrl[tempProduct.imagesUrl.length - 1] !== '' && (
                         <button onClick={handleAddImage} className="btn btn-outline-primary btn-sm w-100">新增圖片</button>
                       )}
@@ -504,7 +494,7 @@ function App() {
               <button onClick={handleCloseProductModal} type="button" className="btn btn-secondary">
                 取消
               </button>
-              <button onClick={handleUpdateProduct} type="button" className="btn btn-primary">
+              <button onClick={() => handleUpdateProduct(tempProduct.id)} type="button" className="btn btn-primary">
                 確認
               </button>
             </div>
@@ -543,7 +533,7 @@ function App() {
               >
                 取消
               </button>
-              <button onClick={handleDeleteProduct} type="button" className="btn btn-danger">
+              <button onClick={() => handleDeleteProduct(tempProduct.id)} type="button" className="btn btn-danger">
                 刪除
               </button>
             </div>
